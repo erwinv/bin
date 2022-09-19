@@ -1,0 +1,21 @@
+{
+  "name": "bin",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "baconjs": "^3.0.17",
+    "lodash": "^4.17.21",
+    "zx": "^7.0.7"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.185",
+    "@types/node": "^18.7.16"
+  }
+}
