@@ -16,20 +16,20 @@ const gitdirs = glob(globPatterns, {
 for await (const gitdir of gitdirs) {
   const gitRepo = './' + path.join(gitdir, '..')
 
-  within(async () => {
+  await within(async () => {
     $.verbose = verbose
 
     cd(gitRepo)
 
-    const gitStat = await $`git status --porcelain`.nothrow()
-    if (gitStat.stderr) {
-      echo(chalk.redBright(gitRepo, os.EOL, gitStat.stderr))
-    } else if (gitStat.stdout) {
-      if (argv.quiet || argv.q) {
-        echo(chalk.yellowBright(gitRepo))
-      } else {
-        echo(chalk.greenBright(gitRepo) + os.EOL + chalk.yellowBright(gitStat.stdout))
-      }
+    const gitRemotes = await $`git remote`
+    if (!gitRemotes.stdout) return
+
+    const logs = [chalk.greenBright(gitRepo)]
+    for (const gitRemote of gitRemotes.stdout.trimEnd().split(os.EOL)) {
+      const gitRemoteUrl = await $`git remote get-url ${gitRemote}`
+  
+      logs.push(gitRemote + ' ' + chalk.yellowBright(gitRemoteUrl.stdout.trimEnd()))
     }
+    echo(os.EOL + logs.join(os.EOL))
   })
 }

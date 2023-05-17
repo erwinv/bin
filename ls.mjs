@@ -1,4 +1,4 @@
-#!/usr/bin/env /home/erwinv/bin/node_modules/.bin/zx
+#!/usr/bin/env zx
 import 'zx/globals'
 
 await $`ls`
