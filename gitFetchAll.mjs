@@ -15,19 +15,19 @@ const gitdirs = glob(globPatterns, {
 })
 
 for await (const gitdir of gitdirs) {
-  const gitRepo = path.join(gitdir, '..')
+  const gitrepo = path.join(gitdir, '..')
 
   const task = within(async () => {
     $.verbose = verbose
 
-    cd(gitRepo)
+    cd(gitrepo)
 
-    const gitRemotes = await $`git remote -v | grep fetch | cut -f2`.nothrow()
+    const gitRemotes = await $`git remote -v | grep '(fetch)' | cut -f2`.nothrow()
     if (!gitRemotes.stdout) return
     const hasHttpsRemote = gitRemotes.stdout.trimEnd().split(os.EOL).some(remote => remote.startsWith('https:'))
     if (hasHttpsRemote) return
 
-    const fetchLog = `Fetching ${chalk.greenBright(gitRepo)}`
+    const fetchLog = `Fetching ${chalk.greenBright(gitrepo)}`
     if (!serialize) {
       echo(fetchLog)
     }
@@ -35,7 +35,7 @@ for await (const gitdir of gitdirs) {
     const gitFetchPromise = $`git fetch`.nothrow()
     const gitFetch = await (serialize ? spinner(fetchLog, () => gitFetchPromise) : gitFetchPromise)
     if (gitFetch.stderr) {
-      echo(chalk.yellowBright(gitRepo), os.EOL, chalk.redBright(gitFetch.stderr))
+      echo(chalk.yellowBright(gitrepo), os.EOL, chalk.redBright(gitFetch.stderr))
     }
   })
 
