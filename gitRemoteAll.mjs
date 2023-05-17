@@ -13,23 +13,34 @@ const gitdirs = glob(globPatterns, {
   followSymbolicLinks: false,
 })
 
-for await (const gitdir of gitdirs) {
-  const gitRepo = './' + path.join(gitdir, '..')
+async function* tasks() {
+  for await (const gitdir of gitdirs) {
+    const gitrepo = './' + path.join(gitdir, '..')
 
-  await within(async () => {
-    $.verbose = verbose
+    const task = within(async () => {
+      $.verbose = verbose
 
-    cd(gitRepo)
+      cd(gitrepo)
 
-    const gitRemotes = await $`git remote`
-    if (!gitRemotes.stdout) return
+      const gitRemotes = await $`git remote`
+      if (!gitRemotes.stdout) return ''
 
-    const logs = [chalk.greenBright(gitRepo)]
-    for (const gitRemote of gitRemotes.stdout.trimEnd().split(os.EOL)) {
-      const gitRemoteUrl = await $`git remote get-url ${gitRemote}`
-  
-      logs.push(gitRemote + ' ' + chalk.yellowBright(gitRemoteUrl.stdout.trimEnd()))
-    }
-    echo(os.EOL + logs.join(os.EOL))
-  })
+      const logs = [chalk.greenBright(gitrepo)]
+      for (const gitRemote of gitRemotes.stdout.trimEnd().split(os.EOL)) {
+        const gitRemoteUrl = await $`git remote get-url ${gitRemote}`
+
+        logs.push(gitRemote + ' ' + chalk.yellowBright(gitRemoteUrl.stdout.trimEnd()))
+      }
+
+      return logs.join(os.EOL) + os.EOL
+    })
+
+    yield task
+  }
+}
+
+for await (const taskLog of tasks()) {
+  if (taskLog) {
+    echo(taskLog)
+  }
 }

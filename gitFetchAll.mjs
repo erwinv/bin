@@ -14,33 +14,42 @@ const gitdirs = glob(globPatterns, {
   followSymbolicLinks: false,
 })
 
-for await (const gitdir of gitdirs) {
-  const gitRepo = path.join(gitdir, '..')
+async function* tasks() {
+  for await (const gitdir of gitdirs) {
+    const gitRepo = path.join(gitdir, '..')
+    
+    const fetchTask = within(async () => {
+      $.verbose = verbose
   
-  const fetchTask = within(async () => {
-    $.verbose = verbose
-
-    cd(gitRepo)
-
-    const gitRemotes = await $`git remote -v | grep fetch | cut -f2`.nothrow()
-    if (!gitRemotes.stdout) return
-    const hasHttpsRemote = gitRemotes.stdout.trimEnd().split(os.EOL).some(remote => remote.startsWith('https:'))
-    if (hasHttpsRemote) return
-
-    let gitFetchPromise = $`git fetch`.nothrow()
-    const fetchLog = `Fetching ${gitRepo}`
-    if (parallelize) {
-      echo(fetchLog)
-    } else {
-      gitFetchPromise = spinner(fetchLog, () => gitFetchPromise)
+      cd(gitRepo)
+  
+      const gitRemotes = await $`git remote -v | grep fetch | cut -f2`.nothrow()
+      if (!gitRemotes.stdout) return
+      const hasHttpsRemote = gitRemotes.stdout.trimEnd().split(os.EOL).some(remote => remote.startsWith('https:'))
+      if (hasHttpsRemote) return
+  
+      let gitFetchPromise = $`git fetch`.nothrow()
+      const fetchLog = `Fetching ${chalk.greenBright(gitRepo)}`
+      if (parallelize) {
+        echo(fetchLog)
+      } else {
+        gitFetchPromise = spinner(fetchLog, () => gitFetchPromise)
+      }
+      const gitFetch = await gitFetchPromise
+      if (gitFetch.stderr) {
+        return chalk.redBright(gitRepo, os.EOL, gitFetch.stderr)
+      }
+    })
+  
+    if (!parallelize) {
+      await fetchTask
+      yield fetchTask
     }
-    const gitFetch = await gitFetchPromise
-    if (gitFetch.stderr) {
-      echo(chalk.redBright(gitRepo, os.EOL, gitFetch.stderr))
-    }
-  })
+  }
+}
 
-  if (!parallelize) {
-    await fetchTask
+for await (const taskLog of tasks()) {
+  if (taskLog) {
+    echo(taskLog)
   }
 }
